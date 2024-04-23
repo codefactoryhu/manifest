@@ -1,0 +1,32 @@
+name: 📚 Docs Feedback
+description: Report an issue related to documentation
+labels: [Issue-Docs]
+title: '[Docs]: '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide a searchable summary of the issue in the title above ⬆️.
+
+  - type: textarea
+    attributes:
+      label: Add a description
+      placeholder: |
+        <!-- Briefly describe which document needs to be corrected and why. -->
+
+  - type: input
+    id: page-url
+    attributes:
+      label: Related page
+      description: Which page of the documentation is this about?
+      placeholder: https://github.com/topics
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Duplicates
+      description: Please [search the history](https://github.com/codefactoryhu/conjur-oss-frontend/issues) to see if an issue already exists for the same problem.
+      options:
+        - label: I have searched the existing issues
+          required: true

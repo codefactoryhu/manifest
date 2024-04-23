@@ -1,0 +1,37 @@
+name: 🚀 Feature Request
+description: 'Submit a request or proposal for a new feature'
+title: '[Feature]: '
+labels: [Issue-Feature]
+body:
+  - type: textarea
+    id: feature-description
+    validations:
+      required: true
+    attributes:
+      label: '🔖 Feature description'
+      description: 'What is the function/purpose of this new feature?. (A clear and concise description of what the problem is that the new feature would solve.)'
+      placeholder: 'The ...'
+  - type: textarea
+    id: pitch
+    validations:
+      required: true
+    attributes:
+      label: '🎤 Why is this feature needed?'
+      description: 'Please explain why this feature should be implemented and how it would be used. Add examples, if applicable. / What does the finished result look like?'
+      placeholder: 'In my use-case, ...'
+  - type: checkboxes
+    id: no-duplicate-issues
+    attributes:
+      label: '👀 Have you spent some time to check if this feature request has been raised before?'
+      description: Please [search the history](https://github.com/codefactoryhu/conjur-oss-frontend/issues) to see if an issue already exists for this feature.
+
+      options:
+        - label: "I checked and didn't find this or very similar feature."
+          required: true
+  - type: checkboxes
+    id: read-code-of-conduct
+    attributes:
+      label: '🏢 Have you read the Code of Conduct?'
+      options:
+        - label: 'I have read the [Contributing Guidelines](https://github.com/codefactoryhu/conjur-oss-frontend/blob/main/CONTRIBUTING.md)'
+          required: true

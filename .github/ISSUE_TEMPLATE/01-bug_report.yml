@@ -1,0 +1,77 @@
+name: '🐛 Bug Report'
+description: 'Submit a bug report to help us improve'
+title: '[Bug]: '
+labels: [Issue-Bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please make sure to [search for existing issues](https://github.com/codefactoryhu/conjur-oss-frontend/issues) before filing a new one!
+  - type: textarea
+    id: description
+    validations:
+      required: true
+    attributes:
+      label: '📜 What happened?'
+      placeholder: 'It bugs out when ...'
+  - type: textarea
+    id: expected-behavior
+    validations:
+      required: true
+    attributes:
+      label: '👍 Expected behavior'
+      description: 'What did you think would happen?'
+      placeholder: 'It should ...'
+  - type: textarea
+    id: actual-behavior
+    validations:
+      required: true
+    attributes:
+      label: '👎 Actual Behavior'
+      description: 'What did actually happen? Add screenshots, if applicable.'
+      placeholder: 'It actually ...'
+  - type: textarea
+    id: steps-to-reproduce
+    validations:
+      required: true
+    attributes:
+      label: '👟 Reproduction steps or Relevant log output'
+      description: 'How do you trigger this bug? Please walk us through it step by step.'
+      placeholder: "1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See the error"
+  - type: input
+    attributes:
+      label: Application Version
+      placeholder: '1.0.2'
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Chart Version
+      placeholder: '1.0.5'
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    validations:
+      required: false
+    attributes:
+      label: '🧱 Your Environment'
+      placeholder: 'I use .... for ...'
+  - type: checkboxes
+    id: no-duplicate-issues
+    attributes:
+      label: '👀 Have you spent some time to check if this issue has been raised before?'
+      description: 'Have you Googled for a similar issue or checked our older issues for a similar bug?'
+      options:
+        - label: 'I have searched the existing issues'
+          required: true
+  - type: checkboxes
+    id: read-code-of-conduct
+    attributes:
+      label: '🏢 Have you read the Code of Conduct?'
+      options:
+        - label: 'I have read the [Code of Conduct](https://github.com/codefactoryhu/conjur-oss-frontend/blob/main/CONTRIBUTING.md)'
+          required: true

@@ -1,0 +1,53 @@
+{
+	"name": "manifest",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write .",
+		"generate openapi types": "openapi-typescript ./conjur-api/openapi-spec/openapi.yml -o ./src/lib/api/openapi-types.ts"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-node": "^5.0.1",
+		"@sveltejs/kit": "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"@typescript-eslint/eslint-plugin": "^6.20.0",
+		"@typescript-eslint/parser": "^6.20.0",
+		"autoprefixer": "^10.4.17",
+		"dotenv": "^16.4.5",
+		"eslint": "^8.56.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-svelte": "^2.35.1",
+		"flowbite": "^2.2.1",
+		"flowbite-svelte": "^0.44.22",
+		"flowbite-svelte-icons": "^0.4.5",
+		"postcss": "^8.4.33",
+		"prettier": "^3.2.4",
+		"prettier-plugin-svelte": "^3.1.2",
+		"prettier-plugin-tailwindcss": "^0.5.11",
+		"svelte": "^4.2.9",
+		"svelte-check": "^3.6.3",
+		"tailwind-merge": "^2.2.1",
+		"tailwindcss": "^3.4.1",
+		"tslib": "^2.6.2",
+		"typescript": "^5.3.3",
+		"vite": "^5.0.0"
+	},
+	"type": "module",
+	"dependencies": {
+		"@tanstack/match-sorter-utils": "^8.11.8",
+		"@tanstack/svelte-table": "^8.12.0",
+		"@types/file-saver": "^2.0.7",
+		"exceljs": "^4.4.0",
+		"file-saver": "^2.0.5",
+		"monaco-editor": "^0.45.0",
+		"monaco-yaml": "^5.1.1",
+		"svelte-select": "^5.8.3",
+		"yaml": "^2.3.4"
+	}
+}
