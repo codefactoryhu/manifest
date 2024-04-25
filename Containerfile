@@ -2,7 +2,7 @@ FROM node:lts-alpine AS base
 
 FROM base AS deps
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@v8.15.6 --activate
 WORKDIR /manifest/deps
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm fetch --frozen-lockfile

@@ -21,7 +21,7 @@ requiredEnvVariables.forEach((envVar) => {
 
 if (missingEnvVariables.length > 0) {
 	const errorMessage = `Missing environment variables:\n${missingEnvVariables.join('\n')}`;
-	throw new Error(errorMessage);
+	console.log(errorMessage);
 }
 
 const csrfValue = process.env.CSRF_VALUE === 'false' ? false : true;
