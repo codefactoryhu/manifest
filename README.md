@@ -251,4 +251,3 @@ Follow these steps to install Manifest:
 | conjurApiUrl        | string  | <https://conjur-oss>          | The Conjur API URL that's accessible within the namespace                       |
 | httpSecureCookie    | boolean | false                         | Wether or not the to use secure cookies on Manifest                             |
 | conjurTlsSecretName | string  | conjur-oss-conjur-ssl-ca-cert | The name of the TLS secret that contains the certificate the Conjur API uses    |
-| csrf                | boolean | false                         | (currently unsupported) Wether to use SvelteKit's cross-site forgery protection |

@@ -7,7 +7,6 @@ replicaCount: 1
 conjurApiUrl: "https://conjur-oss"
 httpSecureCookie: false
 conjurTlsSecretName: "conjur-oss-conjur-ssl-ca-cert"
-csrf: false
 
 image:
   pullPolicy: IfNotPresent
