@@ -9,4 +9,3 @@ data:
     COOKIE_HTTP_SECURE: {{ .Values.httpSecureCookie | quote | default "false" }}
     PORT: {{ .Values.service.port | quote | default "8080" }}
     NODE_EXTRA_CA_CERTS: /etc/ssl/certs/conjur-certificate.pem
-    CSRF_VALUE: {{ .Values.csrf | quote | default "false" }}
