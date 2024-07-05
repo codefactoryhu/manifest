@@ -7,6 +7,14 @@ on:
 jobs:
   publish_docker:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm/v6
+          - linux/arm/v7
+          - linux/arm64    
 
     steps:
       - name: Checkout repository
@@ -31,6 +39,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           file: Containerfile
+          platforms: ${{ matrix.platform }}
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ steps.extract_container_version.outputs.CONTAINER_VERSION }}
 
