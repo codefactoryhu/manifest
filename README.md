@@ -175,6 +175,11 @@ For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommen
    mkdir manifest
    cd manifest
    ```
+   ```bash
+   # Login to GHCR
+   docker login ghcr.io -u username -p accesstoken
+   ```
+   
 2. Generate the `values.yaml` file:
    ```bash
    helm show values oci://ghcr.io/codefactoryhu/manifest-chart > values.yaml
