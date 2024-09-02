@@ -3,6 +3,7 @@ import { env } from '$env/dynamic/private';
 import { getCookieFormat } from '$lib/api/requests';
 import type { Actions, PageServerLoad } from './$types.js';
 import { authRequest, loginRequest } from '$lib/api/client.js';
+import type { ATformat } from '$lib/api/requests/schemas.js';
 
 export const load: PageServerLoad = ({ cookies }) => {
 	if (cookies.get('accessToken')) {
@@ -21,13 +22,13 @@ export const actions: Actions = {
 		}
 
 		const body = Object.fromEntries(await request.formData());
-		const account = body.account?.toString();
-		const userid = body.userid?.toString();
-		const password = body.password?.toString();
+		const accountName: string | null = body.account?.toString();
+		const userid: string = body.userid?.toString();
+		const password: string = body.password?.toString();
 
-		const refreshToken = await loginRequest(account!, userid!, password!);
-		const accessToken = await authRequest(refreshToken, account, userid);
-		const cookieFormat = getCookieFormat(accessToken, account, userid);
+		const refreshToken: string = await loginRequest(accountName!, userid!, password!);
+		const accessToken: string | null = await authRequest(refreshToken, accountName, userid);
+		const cookieFormat: ATformat = getCookieFormat(accessToken!, accountName, userid);
 
 		if (cookieFormat) {
 			const base64 = btoa(JSON.stringify(cookieFormat));

@@ -59,7 +59,7 @@ export async function authRequest(
 	apiKey: string,
 	account: string,
 	userid: string
-): Promise<string> {
+): Promise<string | null> {
 	const authUrl = new URL(`/authn/${account}/${userid}/authenticate`, conjurUrl);
 	let res: Response;
 
@@ -83,7 +83,7 @@ export async function authRequest(
 		throw new ClientHttpError(res.status);
 	}
 
-	const accessToken = await res.json();
+	const accessToken: string = await res.json();
 
 	return accessToken ? accessToken : null;
 }

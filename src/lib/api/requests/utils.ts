@@ -1,7 +1,7 @@
-import { ResourceKind, type ResourceResponse } from './schemas';
+import { ResourceKind, type PossibleResources, type ResourceResponse } from './schemas';
 import { pickTheme } from '$lib/components/themePicker/themeStore';
 import type { BaseResource } from '../baseResources';
-import type { schemas } from '.';
+import { schemas } from '.';
 import type { Writable } from 'svelte/store';
 import type { TableOptions } from '@tanstack/svelte-table';
 import PolicyResource from '../policyResources';
@@ -11,6 +11,14 @@ import UserResource from '../userResources';
 import HostResource from '../hostResources';
 import GroupResource from '../groupResources';
 import WebserviceResource from '../webservicesResources';
+
+import {
+	getResourceByKindAndIdentifier,
+	getResourcesByKindAndParentId,
+	showRoleMembers,
+	showRoleMemberships
+} from './requests';
+import type { ClientRequest } from '../client_types';
 
 export function getResourceKindFromId(id: string): ResourceKind {
 	const strippedAccountId = id.split(':').at(1)!;
@@ -208,4 +216,161 @@ export function setCurrentPage(
 			}
 		};
 	});
+}
+
+export function extractHostIds(data: ResourceResponse[]): string[] {
+	return data
+		.map((item) => {
+			const idParts = item.id.split(':');
+			return idParts.length > 2 ? idParts[2] : '';
+		})
+		.filter((id) => id !== '');
+}
+
+export function createYAMLContent(deletableResourceKind: string, deletableItemId: string): string {
+	//<-- Do not reformat this yml part! -->
+	const yamlContent: string = `
+  - !delete
+    record: !${deletableResourceKind} ${deletableItemId}
+`; //<-- Yml format is ended. -->
+	return yamlContent;
+}
+
+export async function getMainResourceBasedOnKindAndId(
+	pageResourceKind: schemas.ResourceKind,
+	resourceId: string,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<schemas.ResourceResponse | null> {
+	return await clientContext(getResourceByKindAndIdentifier(pageResourceKind, resourceId));
+}
+
+export function getParentKindBasedonThisResource(
+	resource: PossibleResources | null
+): schemas.ResourceKind | null {
+	return resource !== null ? resource.parentKind! : null;
+}
+
+export function getParentIdentifierBasedonThisResource(
+	resource: PossibleResources | null
+): string | null {
+	return resource !== null
+		? resource.parentIdentifier !== undefined
+			? resource.parentIdentifier
+			: null
+		: null;
+}
+
+export async function getParentPolicyBasedonParentKindAndParentIdentifier(
+	parentKind: schemas.ResourceKind | null,
+	parentIdentifier: string | null,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<schemas.ResourceResponse | null> {
+	return parentKind !== null && parentIdentifier !== null
+		? await clientContext(getResourceByKindAndIdentifier(parentKind, parentIdentifier!))
+		: null;
+}
+
+export function getOwnerKindBasedonThisResource(
+	resource: PossibleResources | null
+): schemas.ResourceKind | null {
+	return resource !== null ? getResourceKindFromId(resource.owner) : null;
+}
+
+export function getOwnerIdentifierBasedOnThisResource(
+	resource: PossibleResources | null
+): string | null {
+	return resource !== null ? resource.ownerIdentifier : null;
+}
+
+export async function getOwnerByPolicyOwnerIdentifierAndOwnerKind(
+	ownerKind: schemas.ResourceKind | null,
+	ownerIdentifier: string | null,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<schemas.ResourceResponse | null> {
+	return ownerKind !== null && ownerIdentifier !== null
+		? await clientContext(getResourceByKindAndIdentifier(ownerKind, ownerIdentifier))
+		: null;
+}
+
+export function getRoleMemberShipByIdentifier(
+	identifier: string | null,
+	pageResourceKind: schemas.ResourceKind,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<schemas.RoleMembershipsRequestResponse> | null {
+	if (identifier == null) {
+		return null;
+	} else {
+		switch (pageResourceKind) {
+			case 'user':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.User, identifier));
+			case 'host':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Host, identifier));
+			case 'layer':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Layer, identifier));
+			case 'group':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Group, identifier));
+			case 'policy':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Policy, identifier));
+			case 'variable':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Variable, identifier));
+			case 'webservice':
+				return clientContext(showRoleMemberships(schemas.ResourceKind.Webservice, identifier));
+			default:
+				throw new Error('Unknown resource type');
+		}
+	}
+}
+
+export function getRoleMembersByIdentifier(
+	identifier: string | null,
+	pageResourceKind: schemas.ResourceKind,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<schemas.RoleMemberResponse[]> | null {
+	if (identifier == null) {
+		return null;
+	} else {
+		switch (pageResourceKind) {
+			case 'user':
+				return clientContext(showRoleMembers(schemas.ResourceKind.User, identifier));
+			case 'host':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Host, identifier));
+			case 'layer':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Layer, identifier));
+			case 'group':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Group, identifier));
+			case 'policy':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Policy, identifier));
+			case 'variable':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Variable, identifier));
+			case 'webservice':
+				return clientContext(showRoleMembers(schemas.ResourceKind.Webservice, identifier));
+			default:
+				throw new Error('Unknown resource type');
+		}
+	}
+}
+
+export function getIdentifierOfThisPageKindResource(
+	thisPageKindResource: PolicyResource | null
+): string | null {
+	return thisPageKindResource !== null ? thisPageKindResource.identifier : null;
+}
+
+export async function getVariablesByThisPolicyIdentifier(
+	policyIdentifier: string | null,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+) {
+	return policyIdentifier !== null
+		? await clientContext(
+				getResourcesByKindAndParentId(schemas.ResourceKind.Variable, policyIdentifier!)
+			)
+		: null;
+}
+
+export function getSecretsLength(mainResource: schemas.ResourceResponse | null): number {
+	return mainResource !== null && mainResource.secrets ? mainResource.secrets.length : 0;
+}
+
+export function mainResourceHasSecret(mainResource: schemas.ResourceResponse | null): boolean {
+	return mainResource !== null && mainResource.secrets ? true : false;
 }

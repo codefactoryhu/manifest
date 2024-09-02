@@ -1,9 +1,20 @@
-import type { BaseResource } from '$lib/api/baseResources';
 import { createClientSender } from '$lib/api/client';
+import type { ClientRequest } from '$lib/api/client_types';
 import { ClientHttpError } from '$lib/api/errors';
 import {
+	getMainResourceBasedOnKindAndId,
+	getOwnerByPolicyOwnerIdentifierAndOwnerKind,
+	getOwnerIdentifierBasedOnThisResource,
+	getOwnerKindBasedonThisResource,
+	getParentIdentifierBasedonThisResource,
+	getParentKindBasedonThisResource,
+	getParentPolicyBasedonParentKindAndParentIdentifier,
+	getSecretsLength,
+	mainResourceHasSecret
+} from '$lib/api/requests/utils';
+
+import {
 	checkUserPermission,
-	resource,
 	retrieveSecret,
 	schemas,
 	uploadSecret,
@@ -12,7 +23,7 @@ import {
 	getRefreshTokenValue,
 	getUserId
 } from '$lib/api/requests';
-import { getResourceKindFromId } from '$lib/api/requests/utils';
+
 import VariableResource from '$lib/api/variableResources.js';
 import { error, redirect } from '@sveltejs/kit';
 
@@ -21,39 +32,59 @@ export async function load({ cookies, params, depends }) {
 		throw redirect(303, `/login`);
 	} else {
 		depends('data:data');
-		const secureOneCookie = cookies.get('accessToken');
-		const isValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
-		if (!isValid || isValid == null) {
+		const secureOneCookie: string | undefined = cookies.get('accessToken');
+		const tokenIsValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
+		if (!tokenIsValid || tokenIsValid == null) {
 			cookies.delete('accessToken', { path: '/' });
 			throw redirect(303, `/login`);
 		}
 
 		// Handle Client:
-		const account = getAccountName(secureOneCookie!);
-		const accessToken = getRefreshTokenValue(secureOneCookie!);
+		const accountName: string | null = getAccountName(secureOneCookie!);
+		const accessToken: string | null = getRefreshTokenValue(secureOneCookie!);
 
-		const send = createClientSender(account!, accessToken!);
+		const clientContext: <T>(callback: ClientRequest<T>) => Promise<T> = createClientSender(
+			accountName!,
+			accessToken!
+		);
+
+		// DefineResourceKind and GetResourceId
+		const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Variable;
+		const resourceId: string = params.id;
 
 		// Handle main resource:
-		const pageResourceKind = schemas.ResourceKind.Variable;
-		const resourceId = params.id;
-		const resourceToShow = await send(resource(pageResourceKind, resourceId));
-		const variableFormat = new VariableResource(resourceToShow);
+		const mainResource: schemas.ResourceResponse | null = await getMainResourceBasedOnKindAndId(
+			pageResourceKind,
+			resourceId,
+			clientContext
+		);
 
-		// Handle Parent:
-		const parentKind = variableFormat.parentKind!;
-		const parentIdentifier = variableFormat.parentIdentifier;
-		const parentPolicy =
-			parentKind !== undefined ? await send(resource(parentKind, parentIdentifier!)) : null;
+		const thisPageKindResource: VariableResource | null =
+			mainResource !== null ? new VariableResource(mainResource) : null;
 
-		// Handle Owner:
-		const ownerKind = getResourceKindFromId(variableFormat.owner);
-		const ownerIdentifier = variableFormat.ownerIdentifier;
-		const ownerByPolicyOwnerIdentifier = await send(resource(ownerKind, ownerIdentifier));
+		// Handle Parents:
+		const parentKind: schemas.ResourceKind | null =
+			getParentKindBasedonThisResource(thisPageKindResource);
+		const parentIdentifier: string | null =
+			getParentIdentifierBasedonThisResource(thisPageKindResource);
+		const parentPolicy: schemas.ResourceResponse | null =
+			await getParentPolicyBasedonParentKindAndParentIdentifier(
+				parentKind,
+				parentIdentifier,
+				clientContext
+			);
+
+		// Handle Owners:
+		const ownerKind: schemas.ResourceKind | null =
+			getOwnerKindBasedonThisResource(thisPageKindResource);
+		const ownerIdentifier: string | null =
+			getOwnerIdentifierBasedOnThisResource(thisPageKindResource);
+		const ownerByPolicyOwnerIdentifier: schemas.ResourceResponse | null =
+			await getOwnerByPolicyOwnerIdentifierAndOwnerKind(ownerKind, ownerIdentifier, clientContext);
 
 		// Handle User Permissions
-		const userid = getUserId(secureOneCookie!);
-		const userHasPermissionToFechSecretValue = await send(
+		const userid: string | null = getUserId(secureOneCookie!);
+		const userHasPermissionToFechSecretValue: boolean = await clientContext(
 			checkUserPermission(
 				schemas.ResourceKind.Variable,
 				encodeURIComponent(resourceId),
@@ -61,7 +92,8 @@ export async function load({ cookies, params, depends }) {
 				userid!
 			)
 		);
-		const userHasPermissionToUpdateSecretValue = await send(
+
+		const userHasPermissionToUpdateSecretValue: boolean = await clientContext(
 			checkUserPermission(
 				schemas.ResourceKind.Variable,
 				encodeURIComponent(resourceId),
@@ -71,21 +103,21 @@ export async function load({ cookies, params, depends }) {
 		);
 
 		// Handle Secrets
-		const secretsLength = resourceToShow.secrets ? resourceToShow.secrets.length : 0;
-		const hasSecret: boolean = resourceToShow.secrets ? true : false;
+		const secretsLength: number = getSecretsLength(mainResource);
+		const hasSecret: boolean = mainResourceHasSecret(mainResource);
 
 		const getSecretsDetails = async (
 			hasPermission: boolean,
-			resource: BaseResource,
+			resource: VariableResource | null,
 			hasSecret: boolean,
 			resourceId: string
 		) => {
 			if (hasSecret) {
-				if (hasPermission && resource.secrets) {
+				if (hasPermission && resource !== null && resource.secrets) {
 					try {
 						const result: Promise<schemas.SecretResponse[]> = Promise.all(
 							resource.secrets.map(async (secret) => {
-								const value = await send(
+								const value = await clientContext(
 									retrieveSecret(schemas.ResourceKind.Variable, resourceId, secret.version)
 								);
 								return { expires_at: secret.expires_at!, version: secret.version!, value: value };
@@ -105,15 +137,14 @@ export async function load({ cookies, params, depends }) {
 
 		const secrets = await getSecretsDetails(
 			userHasPermissionToFechSecretValue,
-			variableFormat,
+			thisPageKindResource,
 			hasSecret,
 			resourceId
 		);
 
 		return {
-			success: true,
 			resourceId: resourceId,
-			resource: resourceToShow,
+			resource: mainResource,
 			owner: ownerByPolicyOwnerIdentifier,
 			parentPolicy: parentPolicy,
 			userHasPermissionToFechSecretValue,
@@ -127,25 +158,30 @@ export async function load({ cookies, params, depends }) {
 export const actions: import('./$types').Actions = {
 	// Handle Secret update:
 	add: async ({ request, cookies, params }) => {
-		const body = Object.fromEntries(await request.formData());
-		const newSecretValue = body.newSecretValue.toString();
+		const body: {
+			[k: string]: FormDataEntryValue;
+		} = Object.fromEntries(await request.formData());
+		const newSecretValue: string = body.newSecretValue.toString();
 
-		const secureOneCookie = cookies.get('accessToken');
-		const account = getAccountName(secureOneCookie!);
-		const isValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
+		const secureOneCookie: string | undefined = cookies.get('accessToken');
+		const accountName: string | null = getAccountName(secureOneCookie!);
+		const tokenIsValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
 
-		if (!isValid || isValid == null) {
+		if (!tokenIsValid || tokenIsValid == null) {
 			cookies.delete('accessToken', { path: '/' });
 			redirect(303, `/login`);
 		}
 
-		const accessToken = getRefreshTokenValue(secureOneCookie);
-		const resourceId = params.id;
+		const accessToken: string | null = getRefreshTokenValue(secureOneCookie);
+		const resourceId: string = params.id;
 
-		const send = createClientSender(account!, accessToken!);
+		const clientContext: <T>(callback: ClientRequest<T>) => Promise<T> = createClientSender(
+			accountName!,
+			accessToken!
+		);
 
 		try {
-			const response = await send(
+			const response = await clientContext(
 				uploadSecret(schemas.ResourceKind.Variable, resourceId, newSecretValue)
 			);
 			return { success: true, status: response.status };
