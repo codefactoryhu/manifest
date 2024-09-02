@@ -6,10 +6,12 @@
 
 	export let data;
 
-	const pageResourceKind = schemas.ResourceKind.Host;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Host;
 	let popOverIsEnabled: boolean = true;
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
+
+	let userIsAdmin: boolean = data.userIsAdmin!;
 
 	$: resources = data.data;
 	$: convertedResources = convert(resources);
@@ -30,6 +32,7 @@
 				{popOverIsEnabled}
 				{pageResourceKind}
 				title="Hosts"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}

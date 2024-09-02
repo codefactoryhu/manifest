@@ -1,5 +1,5 @@
 import { ClientHttpError } from '../errors';
-import { type ClientRequestParams } from '../client_types';
+import { type ClientRequest, type ClientRequestParams } from '../client_types';
 import type {
 	WhoAmiResponse,
 	ResourceKind,
@@ -8,11 +8,14 @@ import type {
 	ResourceKindListQueryParams,
 	ResourceCountResponse,
 	RoleMemberResponse,
-	RoleMembershipsResponse,
+	RoleMembershipsBodyResponse,
 	ATformat,
 	IAccessToken,
-	ITokenPayload
+	ITokenPayload,
+	RoleMembershipsRequestResponse
 } from './schemas';
+import { createYAMLContent } from './utils';
+import { error } from '@sveltejs/kit';
 
 export const whoami = () => {
 	return async ({ host, token }: ClientRequestParams) => {
@@ -93,8 +96,16 @@ export const resourceKindListCount = (kind: ResourceKind) => {
 	};
 };
 
-export const resource = (kind: ResourceKind, id: string, queryParams?: ResourceQueryParams) => {
-	return async ({ host, token, account }: ClientRequestParams) => {
+export const getResourceByKindAndIdentifier = (
+	kind: ResourceKind,
+	id: string,
+	queryParams?: ResourceQueryParams
+) => {
+	return async ({
+		host,
+		token,
+		account
+	}: ClientRequestParams): Promise<ResourceResponse | null> => {
 		const headers = new Headers();
 		const opts: RequestInit = { method: 'GET' };
 		const url = new URL(`/resources/${account}/${kind}/${id}`, host);
@@ -119,28 +130,39 @@ export const resource = (kind: ResourceKind, id: string, queryParams?: ResourceQ
 		try {
 			res = await fetch(url, opts);
 		} catch (e) {
-			throw new ClientHttpError(500);
+			throw new ClientHttpError(500, 'Network error or server is unavailable.');
+		}
+
+		const awaitedResponse = await res.json();
+
+		if (res.ok) {
+			return awaitedResponse as ResourceResponse;
 		}
 
 		switch (res.status) {
-			case 200:
-				return (await res.json()) as ResourceResponse;
 			case 401:
-				throw new ClientHttpError(401, 'The request lacks valid authentication credentials');
-			case 403:
-				throw new ClientHttpError(403, 'The authenticated user lacks the necessary privilege');
-			case 404:
-				throw new ClientHttpError(
-					404,
-					'The requested resource does not exist, or authenticated user lacks the necessary privilege'
+				console.error(
+					`The request lacks valid authentication credentials. ${awaitedResponse.error.message}.`
 				);
+				return null;
+			case 403:
+				console.error(
+					`The authenticated user lacks the necessary privilege. ${awaitedResponse.error.message}.`
+				);
+				return null;
+			case 404:
+				console.error(
+					`The requested resource does not exist, or the authenticated user lacks the necessary privilege. ${awaitedResponse.error.message}.`
+				);
+				return null;
 			default:
-				throw new ClientHttpError(res.status, await res.text());
+				console.error(awaitedResponse.error?.message || 'Unexpected error occurred.');
+				return null;
 		}
 	};
 };
 
-export const getVariablesOfPolicy = (kind: ResourceKind, search: string) => {
+export const getResourcesByKindAndParentId = (kind: ResourceKind, search: string) => {
 	return async ({ host, token, account }: ClientRequestParams) => {
 		const headers = new Headers();
 		const opts: RequestInit = { method: 'GET' };
@@ -159,20 +181,25 @@ export const getVariablesOfPolicy = (kind: ResourceKind, search: string) => {
 			throw new ClientHttpError(500);
 		}
 
+		if (res.ok) {
+			return (await res.json()) as ResourceResponse[];
+		}
+
 		switch (res.status) {
-			case 200:
-				return (await res.json()) as ResourceResponse[];
 			case 401:
-				throw new ClientHttpError(401, 'The request lacks valid authentication credentials');
+				console.error(`The request lacks valid authentication credentials.`);
+				return null;
 			case 403:
-				throw new ClientHttpError(403, 'The authenticated user lacks the necessary privilege');
+				console.error(`The authenticated user lacks the necessary privilege.`);
+				return null;
 			case 404:
-				throw new ClientHttpError(
-					404,
-					'The requested resource does not exist, or authenticated user lacks the necessary privilege'
+				console.error(
+					`The requested resource does not exist, or authenticated user lacks the necessary privilege.`
 				);
+				return null;
 			default:
-				throw new ClientHttpError(res.status, await res.text());
+				console.error('Unexpected error occurred.');
+				return null;
 		}
 	};
 };
@@ -378,6 +405,7 @@ export const showRoleMembers = (kind: ResourceKind, identifier: string) => {
 		opts.headers = headers;
 
 		let res: Response;
+
 		try {
 			res = await fetch(url, opts);
 		} catch (e) {
@@ -393,11 +421,14 @@ export const showRoleMembers = (kind: ResourceKind, identifier: string) => {
 
 // Allows you to view the memberships of a role, including a list of groups of which a specific host or user is a member
 export const showRoleMemberships = (kind: ResourceKind, identifier: string) => {
-	return async ({ host, token, account }: ClientRequestParams) => {
+	return async ({
+		host,
+		token,
+		account
+	}: ClientRequestParams): Promise<RoleMembershipsRequestResponse> => {
 		const headers = new Headers();
 		const opts: RequestInit = { method: 'GET' };
 		const url = new URL(`/roles/${account}/${kind}/${identifier}?memberships`, host);
-
 		headers.set('Authorization', `Token token="${token}"`);
 
 		opts.headers = headers;
@@ -408,11 +439,20 @@ export const showRoleMemberships = (kind: ResourceKind, identifier: string) => {
 		} catch (e) {
 			throw new ClientHttpError(500);
 		}
+
 		if (res.ok) {
-			const body = (await res.json()) as RoleMembershipsResponse[];
-			return body;
+			const result = await res.json();
+			const body = result as RoleMembershipsBodyResponse[];
+			return {
+				success: true,
+				body: body
+			};
+		} else {
+			return {
+				success: false,
+				body: []
+			};
 		}
-		throw new ClientHttpError(res.status, await res.text());
 	};
 };
 
@@ -574,5 +614,68 @@ export function getTimeLeftValue(value: string | undefined): number {
 		}
 	} else {
 		return 0;
+	}
+}
+
+export async function getReportOfDeletingEachHostByIds(
+	deletableIds: string[],
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<{
+	success: boolean;
+	deletedItemsIds: string[];
+	notDeletedItems: string[];
+	errorAtThisDelete: string[];
+}> {
+	const deletedItemsIds: string[] = [];
+	const errorAtThisDelete: string[] = [];
+	const notDeletedItems: string[] = deletableIds;
+
+	for (const item of deletableIds) {
+		try {
+			const response = await deleteHostById(item, clientContext);
+			if (response.success) {
+				deletedItemsIds.push(item);
+			}
+		} catch (err) {
+			errorAtThisDelete.push(item);
+		}
+	}
+
+	const success = deletedItemsIds.length === deletableIds.length;
+	return {
+		success,
+		deletedItemsIds,
+		notDeletedItems,
+		errorAtThisDelete
+	};
+}
+
+export async function deleteHostById(
+	hostId: string,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+): Promise<{
+	success: boolean;
+	status: number;
+}> {
+	const yamlContent: string = createYAMLContent('host', hostId);
+	const result = getDeleteRequestResult('root', yamlContent, clientContext);
+	return result;
+}
+
+export async function getDeleteRequestResult(
+	parentPolicy: string,
+	yamlContent: string,
+	clientContext: <T>(callback: ClientRequest<T>) => Promise<T>
+) {
+	let response: Response;
+	if (yamlContent && yamlContent.length > 1) {
+		try {
+			response = await clientContext(deletePolicy(parentPolicy, yamlContent));
+			return { success: true, status: response.status, additionalInfo: '' };
+		} catch (err) {
+			error(400);
+		}
+	} else {
+		error(400);
 	}
 }

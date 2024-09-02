@@ -3,10 +3,18 @@
 	import { UnifiedTableComponent } from '$lib';
 	import { invalidate } from '$app/navigation';
 	import { convert } from '$lib/api/requests/utils.js';
+	import type { ResourceResponse } from '$lib/api/requests/schemas';
 
-	export let data;
+	export let data: {
+		countdown: number;
+		account: string;
+		userid: string;
+		userIsAdmin: boolean;
+		success: boolean;
+		data: ResourceResponse[];
+	};
 
-	const pageResourceKind = schemas.ResourceKind.Webservice;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Webservice;
 
 	let popOverIsEnabled: boolean = true;
 	let headerKeys: Array<keyof schemas.ResourceResponse> = [
@@ -17,8 +25,10 @@
 		'created_at'
 	];
 
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let userIsAdmin: boolean = data.userIsAdmin!;
+
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
 
 	$: resources = data.data;
 	$: convertedResources = convert(resources);
@@ -40,6 +50,7 @@
 				{pageResourceKind}
 				{headerKeys}
 				title="Webservices"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}

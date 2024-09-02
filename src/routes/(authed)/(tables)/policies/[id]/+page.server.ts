@@ -1,68 +1,110 @@
 import { createClientSender } from '$lib/api/client';
+import type { ClientRequest } from '$lib/api/client_types';
+import {
+	getMainResourceBasedOnKindAndId,
+	getParentIdentifierBasedonThisResource,
+	getParentKindBasedonThisResource,
+	getParentPolicyBasedonParentKindAndParentIdentifier,
+	getOwnerByPolicyOwnerIdentifierAndOwnerKind,
+	getOwnerIdentifierBasedOnThisResource,
+	getOwnerKindBasedonThisResource,
+	getIdentifierOfThisPageKindResource,
+	getVariablesByThisPolicyIdentifier
+} from '$lib/api/requests/utils';
+
 import PolicyResource from '$lib/api/policyResources.js';
 import {
-	getVariablesOfPolicy,
-	resource,
+	getResourcesByKindAndParentId,
 	retrieveSecret,
 	schemas,
 	getAccessTokenValidation,
 	getAccountName,
 	getRefreshTokenValue,
-	deletePolicy
+	getReportOfDeletingEachHostByIds,
+	getDeleteRequestResult
 } from '$lib/api/requests';
-import { getResourceKindFromId } from '$lib/api/requests/utils';
+import type { ResourceResponse } from '$lib/api/requests/schemas';
+import { createYAMLContent, extractHostIds } from '$lib/api/requests/utils';
 import VariableResource from '$lib/api/variableResources';
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 
 export async function load({ cookies, params }) {
 	if (!cookies.get('accessToken')) {
 		throw redirect(303, `/login`);
 	} else {
-		const secureOneCookie = cookies.get('accessToken');
-		const isValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
-		if (!isValid || isValid == null) {
+		const secureOneCookie: string | undefined = cookies.get('accessToken');
+		const tokenIsValid: boolean | null = getAccessTokenValidation(secureOneCookie!);
+		if (!tokenIsValid || tokenIsValid == null) {
 			cookies.delete('accessToken', { path: '/' });
 			throw redirect(303, `/login`);
 		}
 
 		// Handle Client:
-		const account = getAccountName(secureOneCookie!);
-		const accessToken = getRefreshTokenValue(secureOneCookie);
-		const send = createClientSender(account!, accessToken!);
+		const accountName: string | null = getAccountName(secureOneCookie!);
+		const accessToken: string | null = getRefreshTokenValue(secureOneCookie);
+		const clientContext: <T>(callback: ClientRequest<T>) => Promise<T> = createClientSender(
+			accountName!,
+			accessToken!
+		);
+
+		// DefineResourceKind and GetResourceId
+		const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Policy;
+		const resourceId: string = params.id;
 
 		// Handle main resource:
-		const resourceId = params.id;
-		const resourceToShow = await send(resource(schemas.ResourceKind.Policy, resourceId));
-		const policyFormat = new PolicyResource(resourceToShow);
+		const mainResource: schemas.ResourceResponse | null = await getMainResourceBasedOnKindAndId(
+			pageResourceKind,
+			resourceId,
+			clientContext
+		);
 
-		// Handle Parent:
-		const parentKind = policyFormat.parentKind!;
-		const parentIdentifier = policyFormat.parentIdentifier;
-		const parentPolicy =
-			parentKind !== undefined ? await send(resource(parentKind, parentIdentifier!)) : null;
+		const thisPageKindResource: PolicyResource | null =
+			mainResource !== null ? new PolicyResource(mainResource) : null;
 
-		// Handle Owner:
-		const ownerKind = getResourceKindFromId(policyFormat.owner);
-		const ownerIdentifier = policyFormat.ownerIdentifier;
-		const ownerByPolicyOwnerIdentifier = await send(resource(ownerKind, ownerIdentifier));
+		// Handle Parents:
+		const parentKind: schemas.ResourceKind | null =
+			getParentKindBasedonThisResource(thisPageKindResource);
+		const parentIdentifier: string | null =
+			getParentIdentifierBasedonThisResource(thisPageKindResource);
+		const parentPolicy: schemas.ResourceResponse | null =
+			await getParentPolicyBasedonParentKindAndParentIdentifier(
+				parentKind,
+				parentIdentifier,
+				clientContext
+			);
 
-		// Handle Variables:
-		const policyIdentifier = policyFormat.identifier;
-		const variablesByPolicyId = await send(
-			getVariablesOfPolicy(schemas.ResourceKind.Variable, policyIdentifier!)
+		// Handle Owners:
+		const ownerKind: schemas.ResourceKind | null =
+			getOwnerKindBasedonThisResource(thisPageKindResource);
+		const ownerIdentifier: string | null =
+			getOwnerIdentifierBasedOnThisResource(thisPageKindResource);
+		const ownerByPolicyOwnerIdentifier: schemas.ResourceResponse | null =
+			await getOwnerByPolicyOwnerIdentifierAndOwnerKind(ownerKind, ownerIdentifier, clientContext);
+
+		const policyIdentifier: string | null =
+			getIdentifierOfThisPageKindResource(thisPageKindResource);
+
+		// Handle Variables
+		const variablesByPolicyId: ResourceResponse[] | null = await getVariablesByThisPolicyIdentifier(
+			policyIdentifier,
+			clientContext
 		);
 
 		// Handle Variables Secrets:
-		const convertVariables = (variables: schemas.ResourceResponse[]): VariableResource[] => {
+		const convertVariables: (variables: schemas.ResourceResponse[]) => VariableResource[] = (
+			variables: schemas.ResourceResponse[]
+		): VariableResource[] => {
 			return variables.map((obj) => new VariableResource(obj));
 		};
 
-		const getSecretValues = async (resources: VariableResource[]): Promise<string[]> => {
+		const getSecretValues: (resources: VariableResource[]) => Promise<string[]> = async (
+			resources: VariableResource[]
+		): Promise<string[]> => {
 			const secretValues: string[] = [];
 			for (const resource of resources) {
 				if (resource.secretsCount && resource.secretsCount > 0) {
 					const newestVersion = Math.max(...resource.secrets.map((obj) => obj.version), 1);
-					const res = await send(
+					const res = await clientContext(
 						retrieveSecret(schemas.ResourceKind.Variable, resource.identifier!, newestVersion)
 					);
 					secretValues.push(res);
@@ -71,12 +113,13 @@ export async function load({ cookies, params }) {
 			return secretValues;
 		};
 
-		const variableResourceArray = convertVariables(variablesByPolicyId);
-		const secretsValues = await getSecretValues(variableResourceArray);
+		const variableResourceArray: VariableResource[] | null =
+			variablesByPolicyId !== null ? convertVariables(variablesByPolicyId) : null;
+		const secretsValues: string[] | null =
+			variableResourceArray !== null ? await getSecretValues(variableResourceArray) : null;
 
 		return {
-			success: true,
-			resource: resourceToShow,
+			resource: mainResource,
 			owner: ownerByPolicyOwnerIdentifier,
 			parentPolicy: parentPolicy,
 			variables: variablesByPolicyId,
@@ -87,40 +130,76 @@ export async function load({ cookies, params }) {
 
 export const actions: import('./$types').Actions = {
 	delete: async ({ request, cookies }) => {
-		const secureOneCookie = cookies.get('accessToken')!;
-		const isValid: boolean | null = getAccessTokenValidation(secureOneCookie);
-		if (!isValid || isValid == null) {
+		const secureOneCookie: string = cookies.get('accessToken')!;
+		const tokenIsValid: boolean | null = getAccessTokenValidation(secureOneCookie);
+		if (!tokenIsValid || tokenIsValid == null) {
 			cookies.delete('accessToken', { path: '/' });
 			redirect(303, `/login`);
 		}
 
-		// Handel delete forms entries:
-		const body = Object.fromEntries(await request.formData());
-		const deletableItemId = body.deletableItemId.toString();
-		const deletableResourceKind = body.deletableResourceKind.toString();
-		const parentPolicy = body.parentPolicy.toString();
-
 		// Init Client:
-		const account = getAccountName(secureOneCookie!);
-		const accessToken = getRefreshTokenValue(secureOneCookie);
-		const send = createClientSender(account!, accessToken!);
+		const accountName: string | null = getAccountName(secureOneCookie!);
+		const accessToken: string | null = getRefreshTokenValue(secureOneCookie);
+		const clientContext: <T>(callback: ClientRequest<T>) => Promise<T> = createClientSender(
+			accountName!,
+			accessToken!
+		);
 
-		let response: Response;
-		//<-- Do not reformat this yml part! -->
-		const yamlContent = `
-  - !delete
-    record: !${deletableResourceKind} ${deletableItemId}
-`; //<-- Yml format is ended. -->
+		// Get values of delete forms entries:
+		const body: {
+			[k: string]: FormDataEntryValue;
+		} = Object.fromEntries(await request.formData());
+		const deletableItemId: string = body.deletableItemId.toString();
+		const deletableResourceKind: string = body.deletableResourceKind.toString();
+		const parentPolicy: string = body.parentPolicy.toString();
+		const attachedResourcesDeleteIsConfirmed = body.attachedResourcesDeleteIsConfirmed.toString();
 
-		if (yamlContent && yamlContent.length > 1) {
-			try {
-				response = await send(deletePolicy(parentPolicy, yamlContent));
-				return { success: true, status: response.status };
-			} catch (err) {
-				error(400);
+		// Get related hostids of selected Policy
+		const hostIdsOfSelectedDeletablePolicy: schemas.ResourceResponse[] | null = await clientContext(
+			getResourcesByKindAndParentId(schemas.ResourceKind.Host, deletableItemId)
+		);
+
+		const hostIds: string[] | null =
+			hostIdsOfSelectedDeletablePolicy !== null
+				? extractHostIds(hostIdsOfSelectedDeletablePolicy)
+				: null;
+
+		if (attachedResourcesDeleteIsConfirmed === 'true') {
+			const deletionResult: {
+				success: boolean;
+				deletedItemsIds: string[];
+				notDeletedItems: string[];
+				errorAtThisDelete: string[];
+			} | null =
+				hostIds !== null ? await getReportOfDeletingEachHostByIds(hostIds, clientContext) : null;
+
+			if (deletionResult !== null && deletionResult.success) {
+				const yamlContent: string = createYAMLContent(deletableResourceKind, deletableItemId);
+				return getDeleteRequestResult(parentPolicy, yamlContent, clientContext);
+			} else {
+				const errormessage: string[] = [];
+				if (deletionResult !== null && deletionResult.errorAtThisDelete.length > 0) {
+					errormessage.push(
+						`Errors occurred at these items: ${deletionResult.errorAtThisDelete.join(', ')}.`
+					);
+				}
+				if (deletionResult !== null && deletionResult.notDeletedItems.length > 0) {
+					errormessage.push(
+						` Status: not deleted items: ${deletionResult.notDeletedItems.join(', ')}.`
+					);
+				}
+				return {
+					success: true,
+					status: 2001,
+					additionalInfo: errormessage
+				};
 			}
 		} else {
-			error(400);
+			if (hostIds !== null && hostIds.length > 0) {
+				return { success: true, status: 403, additionalInfo: hostIds };
+			}
+			const yamlContent: string = createYAMLContent(deletableResourceKind, deletableItemId);
+			return getDeleteRequestResult(parentPolicy, yamlContent, clientContext);
 		}
 	}
 };

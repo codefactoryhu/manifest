@@ -54,6 +54,7 @@
 	export let pageLimitFromParent: number;
 	export let popOverIsEnabled: boolean;
 	export let title: string;
+	export let userIsAdmin: boolean;
 
 	const globalFilterFn: FilterFn<BaseResource> = (row, columnId, value, addMeta) => {
 		if (Array.isArray(value)) {
@@ -139,9 +140,9 @@
 	let deleteDrawerIsHidden: boolean = true;
 
 	/* Handle Style */
-	let allPaddingBetweenCells = 'px-1';
-	let actionCellWidth = 'w-20';
-	let firstCellWidth = '!w-3';
+	let allPaddingBetweenCells: string = 'px-1';
+	let actionCellWidth: string = 'w-20';
+	let firstCellWidth: string = '!w-3';
 
 	function getCellCentered(header: Header<BaseResource, unknown>) {
 		switch (header.column.columnDef.header) {
@@ -152,7 +153,6 @@
 				return ''; // Default width if no matching header
 		}
 	}
-	/* ------------ */
 
 	const options = writable<TableOptions<BaseResource>>({
 		data: resources,
@@ -183,7 +183,6 @@
 	$: resourceLength = $table.getPrePaginationRowModel().rows.length;
 	$: displayStart = currentPage * limit + 1;
 
-	/* Handle GlobalFilter */
 	function setGlobalFilter(filter: string) {
 		globalFilter = filter;
 		options.update((old) => {
@@ -203,22 +202,16 @@
 			});
 		});
 	}
-	/* ------------ */
 
-	/* Handle SortDirection */
 	function getSortSymbol(isSorted: boolean | SortDirection) {
 		return isSorted ? (isSorted === 'asc' ? '🔼' : '🔽') : '';
 	}
-	/* ------------ */
 
-	/* Handle SearchInput */
 	$: handleSearch(searchParam);
 	function handleSearch(filter: string) {
 		setGlobalFilter(filter);
 	}
-	/* ------------ */
 
-	/* Handle NameTags */
 	function replaceSpecialCharsWithUnderscore(
 		inputString?: unknown,
 		rowIndex?: number,
@@ -247,9 +240,7 @@
 			return 'undefined';
 		}
 	}
-	/* ------------ */
 
-	/* Handle PaginationParams */
 	function getCorrectedPageIndexWhenItemsDeleted() {
 		let pageIndexAfterDelete = Math.ceil(
 			($table.getPrePaginationRowModel().rows.length - 1) / limit
@@ -262,9 +253,6 @@
 			: correction - 1;
 	}
 
-	/* ------------ */
-
-	/* Handle Delete */
 	function handleDeleteButton(
 		resourceId?: string,
 		parentIdentifier?: string,
@@ -286,9 +274,7 @@
 	function refreshCurrentPage() {
 		pageIndexFromParent = getCorrectedPageIndexWhenItemsDeleted();
 	}
-	/* ------------ */
 
-	/* Handle Buttons */
 	function tooglePaginationIsVisibleBtn() {
 		paginationIsVisible = !paginationIsVisible;
 	}
@@ -301,9 +287,7 @@
 		filterIsActivated = !filterIsActivated;
 		resetGlobalFilter();
 	}
-	/* ------------ */
 
-	/* Handle Exports */
 	function getCsvExport() {
 		exportCsV($table, title, true);
 	}
@@ -311,7 +295,6 @@
 	function getXlsxExport() {
 		exportXlsx($table, title, true);
 	}
-	/* ------------ */
 </script>
 
 <CreatePolicyDrawer bind:policyDrawerHidden on:handleResourceRefresh />
@@ -422,14 +405,15 @@
 						</Dropdown>
 					</div>
 				</div>
-
-				<button
-					on:click={() => {
-						policyDrawerHidden = false;
-					}}
-					class="text-normal flex flex-wrap items-center gap-x-2 rounded-lg border-gray-200 bg-blue-700 px-5 py-2.5 text-sm text-tmaind hover:bg-blue-800 focus:outline-none dark:border-blue-700 dark:text-white dark:hover:bg-blue-800 dark:focus:ring-gray-700"
-					>Add Resource</button
-				>
+				{#if userIsAdmin}
+					<button
+						on:click={() => {
+							policyDrawerHidden = false;
+						}}
+						class="text-normal flex flex-wrap items-center gap-x-2 rounded-lg border-gray-200 bg-blue-700 px-5 py-2.5 text-sm text-tmaind hover:bg-blue-800 focus:outline-none dark:border-blue-700 dark:text-white dark:hover:bg-blue-800 dark:focus:ring-gray-700"
+						>Add Resource</button
+					>
+				{/if}
 			</div>
 		</Heading>
 	</div>
@@ -535,7 +519,7 @@
 							</TableBodyCell>
 						{/each}
 						<TableBodyCell tdClass={'h-6 ' + actionCellWidth}>
-							{#if row.original.identifier !== 'admin' && row.original.identifier !== 'root'}
+							{#if row.original.identifier !== 'admin' && row.original.identifier !== 'root' && userIsAdmin}
 								<button
 									color="red"
 									class="text-normal mr-1 flex flex-wrap items-center gap-x-2 rounded-lg border-gray-200 bg-red-700 px-5 py-2.5 text-sm text-tmaind hover:bg-red-800 focus:outline-none dark:border-red-700 dark:text-white dark:hover:bg-red-800 dark:focus:ring-gray-700"

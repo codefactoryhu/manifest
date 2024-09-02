@@ -1,58 +1,87 @@
 import { createClientSender } from '$lib/api/client';
 import LayerResource from '$lib/api/layerResources.js';
 import {
-	resource,
+	getMainResourceBasedOnKindAndId,
+	getParentKindBasedonThisResource,
+	getParentIdentifierBasedonThisResource,
+	getParentPolicyBasedonParentKindAndParentIdentifier,
+	getOwnerKindBasedonThisResource,
+	getOwnerByPolicyOwnerIdentifierAndOwnerKind,
+	getRoleMembersByIdentifier,
+	getRoleMemberShipByIdentifier,
+	getOwnerIdentifierBasedOnThisResource
+} from '$lib/api/requests/utils';
+import {
 	schemas,
-	showRoleMembers,
-	showRoleMemberships,
 	getAccessTokenValidation,
 	getAccountName,
 	getRefreshTokenValue
 } from '$lib/api/requests';
-import { getResourceKindFromId } from '$lib/api/requests/utils';
 import { redirect } from '@sveltejs/kit';
 
 export async function load({ cookies, params }) {
 	if (!cookies.get('accessToken')) {
 		throw redirect(303, `/login`);
 	} else {
-		const secureOneCookie = cookies.get('accessToken')!;
-		const isValid: boolean | null = getAccessTokenValidation(secureOneCookie);
-		if (!isValid || isValid == null) {
+		const secureOneCookie: string = cookies.get('accessToken')!;
+		const tokenIsValid: boolean | null = getAccessTokenValidation(secureOneCookie);
+		if (!tokenIsValid || tokenIsValid == null) {
 			cookies.delete('accessToken', { path: '/' });
 			throw redirect(303, `/login`);
 		}
 
 		// Init Client:
-		const account = getAccountName(secureOneCookie!);
-		const accessToken = getRefreshTokenValue(secureOneCookie);
-		const send = createClientSender(account!, accessToken!);
+		const accountName: string | null = getAccountName(secureOneCookie!);
+		const accessToken: string | null = getRefreshTokenValue(secureOneCookie);
+		const clientContext = createClientSender(accountName!, accessToken!);
+
+		// DefineResourceKind and GetResourceId
+		const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Layer;
+		const resourceId: string = params.id;
 
 		// Handle main resource:
-		const pageResourceKind = schemas.ResourceKind.Layer;
-		const resourceId = params.id;
-		const resourceToShow = await send(resource(pageResourceKind, resourceId));
-		const layersFormat = new LayerResource(resourceToShow);
+		const mainResource: schemas.ResourceResponse | null = await getMainResourceBasedOnKindAndId(
+			pageResourceKind,
+			resourceId,
+			clientContext
+		);
 
-		// Handle Parent:
-		const parentKind = layersFormat.parentKind!;
-		const parentIdentifier = layersFormat.parentIdentifier;
-		const parentPolicy =
-			parentKind !== undefined ? await send(resource(parentKind, parentIdentifier!)) : null;
+		const thisPageKindResource: LayerResource | null =
+			mainResource !== null ? new LayerResource(mainResource) : null;
 
-		// Handle Owner:
-		const ownerKind = getResourceKindFromId(layersFormat.owner);
-		const ownerIdentifier = layersFormat.ownerIdentifier;
-		const ownerByPolicyOwnerIdentifier = await send(resource(ownerKind, ownerIdentifier));
+		// Handle Parents:
+		const parentKind: schemas.ResourceKind | null =
+			getParentKindBasedonThisResource(thisPageKindResource);
+		const parentIdentifier: string | null =
+			getParentIdentifierBasedonThisResource(thisPageKindResource);
+		const parentPolicy: schemas.ResourceResponse | null =
+			await getParentPolicyBasedonParentKindAndParentIdentifier(
+				parentKind,
+				parentIdentifier,
+				clientContext
+			);
+
+		// Handle Owners:
+		const ownerKind: schemas.ResourceKind | null =
+			getOwnerKindBasedonThisResource(thisPageKindResource);
+		const ownerIdentifier: string | null =
+			getOwnerIdentifierBasedOnThisResource(thisPageKindResource);
+		const ownerByPolicyOwnerIdentifier: schemas.ResourceResponse | null =
+			await getOwnerByPolicyOwnerIdentifierAndOwnerKind(ownerKind, ownerIdentifier, clientContext);
 
 		// Handle Roles:
-		const layerIdentifier = layersFormat.identifier;
-		const roleMemberships = send(showRoleMemberships(schemas.ResourceKind.Layer, layerIdentifier));
-		const roleMembers = send(showRoleMembers(schemas.ResourceKind.Layer, layerIdentifier));
+		const layerIdentifier: string | null =
+			getOwnerIdentifierBasedOnThisResource(thisPageKindResource);
+		const roleMemberships: Promise<schemas.RoleMembershipsRequestResponse> | null =
+			getRoleMemberShipByIdentifier(layerIdentifier, pageResourceKind, clientContext);
+		const roleMembers: Promise<schemas.RoleMemberResponse[]> | null = getRoleMembersByIdentifier(
+			layerIdentifier,
+			pageResourceKind,
+			clientContext
+		);
 
 		return {
-			success: true,
-			resource: resourceToShow,
+			resource: mainResource,
 			owner: ownerByPolicyOwnerIdentifier,
 			parentPolicy: parentPolicy,
 			roleMembers: roleMembers,

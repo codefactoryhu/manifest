@@ -6,7 +6,6 @@ import type UserResource from '../userResources';
 import type VariableResource from '../variableResources';
 import type WebserviceResource from '../webservicesResources';
 
-// Enums
 export enum ResourceKind {
 	User = 'user',
 	Host = 'host',
@@ -17,7 +16,6 @@ export enum ResourceKind {
 	Webservice = 'webservice'
 }
 
-// Response types
 export interface ResourceResponse {
 	annotations?: {
 		name: string;
@@ -64,7 +62,6 @@ export interface WhoAmiResponse {
 	username?: string;
 }
 
-// Parameter types
 export interface ResourceKindListQueryParams {
 	search?: string;
 	offset?: number;
@@ -131,12 +128,17 @@ export interface CreatedPolicyResponse {
 	version: number;
 }
 
-export interface RoleMembershipsResponse {
+export interface RoleMembershipsBodyResponse {
 	admin_option: boolean;
 	ownership: boolean;
 	role: string;
 	member: string;
 	policy: string;
+}
+
+export interface RoleMembershipsRequestResponse {
+	success: boolean;
+	body: RoleMembershipsBodyResponse[];
 }
 
 export interface RoleMemberResponse {
@@ -164,4 +166,3 @@ export interface ITokenPayload {
 	exp: string;
 	iat: string;
 }
-/* --------------------- */

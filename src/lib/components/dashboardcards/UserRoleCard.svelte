@@ -14,13 +14,13 @@
 	import { schemas } from '$lib/api/requests';
 
 	export let additionalClass: string;
-	export let roleMemberships: schemas.RoleMembershipsResponse[];
+	export let roleMemberships: schemas.RoleMembershipsRequestResponse;
 
-	function getIdentifier(string: string) {
+	function getIdentifier(string: string): string | undefined {
 		return string.split(':').at(-1);
 	}
 
-	function gotoResource(key: string) {
+	function gotoResource(key: string): void {
 		const resourceRoot = getResourceRoot(key);
 		const identifier = getIdentifier(key);
 		goto(`/${resourceRoot}/${encodeURIComponent(identifier!)}`);
@@ -31,15 +31,15 @@
 	<h4 class="mb-5 text-xl font-bold text-tmainl dark:text-tmaind">Role Memberships</h4>
 	<Table
 		striped
-		class={roleMemberships.length === 0 ? 'h-full' : ''}
-		divClass="relative overflow-x-auto rounded border !border-gray-100 dark:!border-gray-600 dark:bg-bgds"
+		class={roleMemberships.body.length === 0 ? 'h-full' : ''}
+		divClass="h-full overflow-x-auto rounded border !border-gray-100 dark:!border-gray-600 dark:bg-bgds"
 	>
 		<TableHead theadClass="text-xs uppercase bg-gray-100 dark:bg-gray-700 sticky">
 			<TableHeadCell class="w-1/3 text-left" padding="pl-6">Membership</TableHeadCell>
 			<TableHeadCell class="w-1/12 text-center" padding="p-3">Admin options</TableHeadCell>
 			<TableHeadCell class="w-1/12 text-center" padding="p-3">Owner</TableHeadCell>
 		</TableHead>
-		{#if roleMemberships.length === 0}
+		{#if roleMemberships.body.length === 0}
 			<TableBody tableBodyClass="relative">
 				<div class=" w- absolute flex h-full w-full items-center justify-center">
 					<p class="text-center text-lg text-tsecl dark:text-tsecd">No Avaliable Memberships</p>
@@ -47,7 +47,7 @@
 			</TableBody>
 		{:else}
 			<TableBody>
-				{#each roleMemberships as membership}
+				{#each roleMemberships.body as membership}
 					<TableBodyRow>
 						<TableBodyCell>
 							<button
