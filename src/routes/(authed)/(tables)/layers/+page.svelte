@@ -4,19 +4,28 @@
 	import { invalidate } from '$app/navigation';
 	import { convert } from '$lib/api/requests/utils.js';
 
-	export let data;
+	export let data: {
+		countdown: number;
+		account: string;
+		userid: string;
+		userIsAdmin: boolean;
+		success: boolean;
+		data: schemas.ResourceResponse[];
+	};
 
-	const pageResourceKind = schemas.ResourceKind.Layer;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Layer;
 
 	let popOverIsEnabled: boolean = true;
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
+
+	let userIsAdmin: boolean = data.userIsAdmin!;
 
 	$: resources = data.data;
 
 	$: convertedResources = convert(resources);
 
-	function refreshResources() {
+	function refreshResources(): void {
 		invalidate('data:data');
 	}
 </script>
@@ -32,6 +41,7 @@
 				{popOverIsEnabled}
 				{pageResourceKind}
 				title="Layers"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}

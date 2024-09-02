@@ -3,15 +3,25 @@
 	import { UnifiedTableComponent } from '$lib';
 	import { invalidate } from '$app/navigation';
 	import { convert } from '$lib/api/requests/utils.js';
+	import type { ResourceResponse } from '$lib/api/requests/schemas';
 
-	export let data;
+	export let data: {
+		countdown: number;
+		account: string;
+		userid: string;
+		userIsAdmin: boolean;
+		success: boolean;
+		data: ResourceResponse[];
+	};
 
-	const pageResourceKind = schemas.ResourceKind.User;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.User;
 
 	let headerKeys: Array<keyof schemas.ResourceResponse> = ['id', 'owner', 'created_at'];
 	let popOverIsEnabled: boolean = true;
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
+
+	let userIsAdmin: boolean = data.userIsAdmin!;
 
 	$: resources = data.data;
 	$: convertedResources = convert(resources);
@@ -33,6 +43,7 @@
 				{pageResourceKind}
 				{headerKeys}
 				title="Users"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}

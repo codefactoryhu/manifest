@@ -4,12 +4,21 @@
 	import { invalidate } from '$app/navigation';
 	import { convert } from '$lib/api/requests/utils.js';
 
-	export let data;
+	export let data: {
+		countdown: number;
+		account: string;
+		userid: string;
+		userIsAdmin: boolean;
+		success: boolean;
+		data: schemas.ResourceResponse[];
+	};
 
-	const pageResourceKind = schemas.ResourceKind.Group;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Group;
 	let popOverIsEnabled: boolean = true;
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
+
+	let userIsAdmin: boolean = data.userIsAdmin!;
 
 	$: resources = data.data;
 	$: convertedResources = convert(resources);
@@ -30,6 +39,7 @@
 				{popOverIsEnabled}
 				{pageResourceKind}
 				title="Groups"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}

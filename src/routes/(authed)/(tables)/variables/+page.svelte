@@ -4,9 +4,16 @@
 	import { schemas } from '$lib/api/requests/index.js';
 	import { convert } from '$lib/api/requests/utils.js';
 
-	export let data;
+	export let data: {
+		countdown: number;
+		account: string;
+		userid: string;
+		userIsAdmin: boolean;
+		success: boolean;
+		data: schemas.ResourceResponse[];
+	};
 
-	const pageResourceKind = schemas.ResourceKind.Variable;
+	const pageResourceKind: schemas.ResourceKind = schemas.ResourceKind.Variable;
 
 	let popOverIsEnabled: boolean = true;
 	let headerKeys: Array<keyof schemas.ResourceResponse> = [
@@ -18,8 +25,10 @@
 		'created_at'
 	];
 
-	let initPageIndex = 0;
-	let initPageRowLimit = 12;
+	let userIsAdmin: boolean = data.userIsAdmin!;
+
+	let initPageIndex: number = 0;
+	let initPageRowLimit: number = 12;
 
 	$: resources = convert(data.data);
 
@@ -40,6 +49,7 @@
 				{pageResourceKind}
 				{headerKeys}
 				title="Variables"
+				{userIsAdmin}
 			></UnifiedTableComponent>
 		{/key}
 	{/key}
