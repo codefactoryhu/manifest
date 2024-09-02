@@ -5,8 +5,15 @@
 	import ConjurLogo from '$lib/assets/ConjurLogo.svelte';
 	import { applyAction, enhance } from '$app/forms';
 	import { handleYamlTheme } from '$lib/api/requests/utils';
+	import { EyeOutline, EyeSlashOutline } from 'flowbite-svelte-icons';
 
-	let isLoading = false;
+	let isLoading: boolean = false;
+	let show: boolean = false;
+
+	let accountValue: string = '';
+	function setAccountValue(value: string): void {
+		accountValue = value;
+	}
 </script>
 
 <main class="h-full w-full">
@@ -73,16 +80,27 @@
 				}}
 			>
 				<div>
-					<Label for="account" class="mb-2">Account</Label>
+					<div class="mb-2 flex flex-row items-center justify-between">
+						<Label for="account">Account</Label>
+
+						<button
+							type="button"
+							class="rounded-md bg-gray-200 p-1 text-xs text-gray-500 outline-none dark:bg-gray-600 dark:text-tmaind"
+							on:click={() => setAccountValue('default')}>default</button
+						>
+					</div>
+
 					<Input
 						type="text"
 						name="account"
 						id="account"
+						bind:value={accountValue}
 						placeholder="Your account name"
 						autocomplete="off"
 						required
 					/>
 				</div>
+
 				<div>
 					<Label for="userid" class="mb-2">Username</Label>
 					<Input
@@ -97,13 +115,25 @@
 				<div>
 					<Label for="password" class="mb-2">Password</Label>
 					<Input
-						type="password"
-						name="password"
 						id="password"
-						placeholder="••••••••"
-						autocomplete="Your password"
+						type={show ? 'text' : 'password'}
+						placeholder="Your password"
+						name="password"
 						required
-					/>
+					>
+						<button
+							slot="right"
+							type="button"
+							on:click={() => (show = !show)}
+							class="pointer-events-auto"
+						>
+							{#if show}
+								<EyeSlashOutline class="h-4 w-4 focus:outline-none" />
+							{:else}
+								<EyeOutline class="h-4 w-4 focus:outline-none" />
+							{/if}
+						</button>
+					</Input>
 				</div>
 				<div class="flex items-center justify-between">
 					<button
