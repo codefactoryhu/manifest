@@ -19,11 +19,11 @@
 	export let additionalClass: string = '';
 	export let roleMembers: Promise<RoleMemberResponse[]>;
 
-	function getIdentifier(string: string) {
+	function getIdentifier(string: string): string | undefined {
 		return string.split(':').at(-1);
 	}
 
-	function gotoResource(key: string) {
+	function gotoResource(key: string): void {
 		const resourceRoot = getResourceRoot(key);
 		const identifier = getIdentifier(key);
 		goto(`/${resourceRoot}/${encodeURIComponent(identifier!)}`);
@@ -33,7 +33,7 @@
 <Card class="h-96 max-w-none {additionalClass}">
 	<h4 class="mb-5 text-xl font-bold text-tmainl dark:text-tmaind">{title}</h4>
 	{#await roleMembers}
-		<div class="inset-0 flex h-full flex-row justify-center">
+		<div class="relative inset-0 flex h-full flex-row justify-center border border-red-600">
 			<Spinner color="gray" />
 		</div>
 	{:then roleMembershipsResolved}
@@ -118,10 +118,9 @@
 				</TableBody>
 			{/if}
 		</Table>
-	{:catch error}
+	{:catch}
 		<ResourceErrorContent
-			{error}
-			message={'You do not have "execute" privliges for you own User. Please contanct System Admin for further help!'}
+			message={'You do not have "execute" priviliges for you own User. Please contanct System Admin for further help!'}
 		/>
 	{/await}
 </Card>

@@ -11,22 +11,22 @@
 		Spinner
 	} from 'flowbite-svelte';
 	import { goto } from '$app/navigation';
-	import type { RoleMembershipsResponse } from '$lib/api/requests/schemas';
 	import { getResourceKindFromId, getResourceRoot } from '$lib/api/requests/utils';
 	import { ClientHttpError } from '$lib/api/errors';
 	import { ResourceIcon } from '$lib';
+	import type { RoleMembershipsRequestResponse } from '$lib/api/requests/schemas';
 
 	export let additionalClass: string;
 	export let title: string;
-	export let resource: Promise<RoleMembershipsResponse[]> = Promise.reject(
+	export let resource: Promise<RoleMembershipsRequestResponse> = Promise.reject(
 		new ClientHttpError(404, 'Error at loading Membership list')
 	);
 
-	function getIdentifier(string: string) {
+	function getIdentifier(string: string): string | undefined {
 		return string.split(':').at(-1);
 	}
 
-	function gotoResource(key: string) {
+	function gotoResource(key: string): void {
 		const resourceRoot = getResourceRoot(key);
 		const identifier = getIdentifier(key);
 		goto(`/${resourceRoot}/${encodeURIComponent(identifier!)}`);
@@ -42,7 +42,7 @@
 	{:then resourceResolved}
 		<Table
 			striped
-			class={resourceResolved.length === 0 ? 'h-full' : ''}
+			class={resourceResolved.body.length === 0 ? 'h-full' : ''}
 			divClass="relative h-full overflow-x-auto rounded border !border-gray-100 dark:!border-gray-600 dark:bg-bgds"
 		>
 			<TableHead theadClass="text-xs uppercase bg-gray-100 dark:bg-gray-700 sticky">
@@ -50,7 +50,7 @@
 				<TableHeadCell class="w-1/12 text-center" padding="p-3">Admin options</TableHeadCell>
 				<TableHeadCell class="w-1/12 text-center" padding="p-3">Owner</TableHeadCell>
 			</TableHead>
-			{#if resourceResolved.length === 0}
+			{#if resourceResolved.body.length === 0}
 				<TableBody tableBodyClass="relative">
 					<div class="absolute flex h-full w-full items-center justify-center">
 						<p class="text-center text-lg text-tsecl dark:text-tsecd">No Avaliable Memberships</p>
@@ -58,7 +58,7 @@
 				</TableBody>
 			{:else}
 				<TableBody>
-					{#each resourceResolved as membership}
+					{#each resourceResolved.body as membership}
 						<TableBodyRow>
 							<TableBodyCell>
 								<button
