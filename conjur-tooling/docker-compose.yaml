@@ -1,5 +1,3 @@
-version: '3'
-
 name: conjur
 
 networks:
@@ -32,7 +30,7 @@ services:
       - ./conf/tls/:/tmp/conf
 
   database:
-    image: postgres:10.16
+    image: postgres:15
     container_name: postgres_database
     environment:
       POSTGRES_HOST_AUTH_METHOD: password
