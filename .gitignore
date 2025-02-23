@@ -12,3 +12,5 @@ vite.config.ts.timestamp-*
 /conjur-tooling/conf/tls/nginx.key
 /conjur-tooling/admin-data
 conjur-tooling/conf/policy
+
+.vscode
