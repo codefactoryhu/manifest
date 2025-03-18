@@ -4,6 +4,7 @@ import type { ClientRequest } from './client_types';
 import { ClientHttpError } from './errors';
 
 const conjurUrl = env.CONJUR_API_URL ? new URL(env.CONJUR_API_URL) : undefined;
+const conjurAuthn = env.CONJUR_AUTHN ? env.CONJUR_AUTHN : "authn";
 
 export function createClientSender(account: string, accessToken: string) {
 	if (conjurUrl === undefined) {
@@ -34,7 +35,7 @@ export async function loginRequest(
 		error(500);
 	}
 
-	const loginUrl = new URL(`/authn/${account}/login`, conjurUrl);
+	const loginUrl = new URL(`/${conjurAuthn}/${account}/login`, conjurUrl);
 	let res: Response;
 	try {
 		res = await fetch(loginUrl, {
@@ -60,7 +61,7 @@ export async function authRequest(
 	account: string,
 	userid: string
 ): Promise<string | null> {
-	const authUrl = new URL(`/authn/${account}/${userid}/authenticate`, conjurUrl);
+	const authUrl = new URL(`/${conjurAuthn}/${account}/${userid}/authenticate`, conjurUrl);
 	let res: Response;
 
 	if (conjurUrl === undefined) {
