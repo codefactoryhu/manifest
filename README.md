@@ -151,16 +151,19 @@ For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommen
 > **NOTE:** If using Windows, ensure bash is installed. See [how to install and run bash](https://www.makeuseof.com/windows-11-install-run-bash/).
 
 1. Install `kubectl` and `helm`:
+
    ```bash
    sudo snap install kubectl --classic
    sudo snap install helm
    ```
 2. Install Docker:
+
    ```bash
    sudo snap install docker
    ```
    [Docker installation guide](https://docs.docker.com/engine/install/ubuntu/)
 3. Install Conjur OSS Helm Chart:
+
    ```bash
    CONJUR_NAMESPACE=conjur
    kubectl create namespace "$CONJUR_NAMESPACE"
