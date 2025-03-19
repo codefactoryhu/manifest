@@ -31,6 +31,7 @@ There are two ways to start using Manifest:
 >
 > - [Docker](https://docs.docker.com/get-docker/)
 > - [Docker-Compose](https://docs.docker.com/compose/install/)
+> - [Performant npm](https://pnpm.io/installation) (at least v10.6.4)
 
 1. Clone this project repository.
 2. Navigate to the repository folder:
