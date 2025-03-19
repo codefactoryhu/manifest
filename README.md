@@ -151,16 +151,19 @@ For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommen
 > **NOTE:** If using Windows, ensure bash is installed. See [how to install and run bash](https://www.makeuseof.com/windows-11-install-run-bash/).
 
 1. Install `kubectl` and `helm`:
+
    ```bash
    sudo snap install kubectl --classic
    sudo snap install helm
    ```
 2. Install Docker:
+
    ```bash
    sudo snap install docker
    ```
    [Docker installation guide](https://docs.docker.com/engine/install/ubuntu/)
 3. Install Conjur OSS Helm Chart:
+
    ```bash
    CONJUR_NAMESPACE=conjur
    kubectl create namespace "$CONJUR_NAMESPACE"
@@ -215,7 +218,7 @@ For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommen
    ```
    **Verification:** The terminal returns:
    ```bash
-   Pulled: ghcr.io/codefactoryhu/manifest-chart:0.1.1
+   Pulled: ghcr.io/codefactoryhu/manifest-chart:0.1.2
    Digest: sha256:95c9fc48212a38f6296b7a757e85de6b82233cb6a2719c8d010285f1dcf5aa6c
    ```
 3. Deploy Manifest:
