@@ -92,7 +92,7 @@ There are two ways to start using Manifest:
    ```
 8. Create a new `.env` as example of `.env.example` and set up your own variables or use the default values.
 
-> **IMPORTANT:** 9. If running Conjur locally, set `NODE_TLS_REJECT_UNAUTHORIZED` to 0 in your environment. See detailed instruction [here](#how-to-set-node_tls_reject_unauthorized-to-0).
+> **IMPORTANT:** 9. If running Conjur locally, set `NODE_TLS_REJECT_UNAUTHORIZED` to 0 in your environment. See detailed instruction [here](#how-to-set-node_tls_reject_unauthorized-to-0-).
 
 | **Setup for Developers**                         | **Setup for Users**                              |
 | ------------------------------------------------ | ------------------------------------------------ |
