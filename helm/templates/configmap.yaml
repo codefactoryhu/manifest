@@ -6,6 +6,7 @@ metadata:
         {{- include "manifest.labels" . | nindent 4 }}
 data:
     CONJUR_API_URL: {{ .Values.conjurApiUrl | quote  | default "https://conjur-oss"}}
+    CONJUR_AUTHN: {{ .Values.conjurAuthn | quote  | default "authn"}}
     COOKIE_HTTP_SECURE: {{ .Values.httpSecureCookie | quote | default "false" }}
     PORT: {{ .Values.service.port | quote | default "8080" }}
     NODE_EXTRA_CA_CERTS: /etc/ssl/certs/conjur-certificate.pem

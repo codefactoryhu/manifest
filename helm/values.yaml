@@ -8,6 +8,9 @@ conjurApiUrl: "https://conjur-oss"
 httpSecureCookie: false
 conjurTlsSecretName: "conjur-oss-conjur-ssl-ca-cert"
 
+## Use LDAP Authentication configured in Conjur, defaults to 'authn' if not set.
+#conjurAuthn: "authn-ldap/my-ldap-server"
+
 image:
   pullPolicy: IfNotPresent
 
