@@ -68,13 +68,17 @@ There are two ways to start using Manifest:
    Wrote configuration to /root/.conjurrc
    ```
 6. Log in as the `admin` user using the API key from `conjur-tooling/admin-data`:
+
    ```bash
    docker exec conjur_client conjur login -i admin -p {api-key}
    ```
+
    **Verification:** The terminal returns:
+
    ```bash
    Logged in
    ```
+
 7. Set your own admin password:
    ```bash
    docker exec conjur_client conjur user change-password -p CONJUR_password1
@@ -83,26 +87,48 @@ There are two ways to start using Manifest:
    ```bash
    Password changed
    ```
-8. Rename the `.env.example` file to `.env` and set up your own variables or use the default values.
+8. Create a new `.env` as example of `.env.example` and set up your own variables or use the default values.
 
-> **IMPORTANT:** If running Conjur locally, set `NODE_TLS_REJECT_UNAUTHORIZED` to 0 in your environment.
+> **IMPORTANT:** 9. If running Conjur locally, set `NODE_TLS_REJECT_UNAUTHORIZED` to 0 in your environment. See detailed instruction [here](#how-to-set-node_tls_reject_unauthorized-to-0).
 
 | **Setup for Developers**                         | **Setup for Users**                              |
 | ------------------------------------------------ | ------------------------------------------------ |
-| 9. Install project dependencies:                 | 9. Install project dependencies:                 |
+| 10. Install project dependencies:                | 10. Install project dependencies:                |
 | `pnpm install`                                   | `pnpm install`                                   |
-| 10. Start a development server:                  | 10. Create a production version of Manifest App: |
+| 11. Start a development server:                  | 11. Create a production version of Manifest App: |
 | `pnpm run dev`                                   | `pnpm run build`                                 |
-| 11. Open the local URL provided by the terminal. | 11. Run Manifest App:                            |
+| 12. Open the local URL provided by the terminal. | 12. Run Manifest App:                            |
 |                                                  | `pnpm run preview`                               |
 
-> **IMPORTANT:** Ensure the Nginx_proxy Container is running. Check the Conjur Server at https://localhost:8443.
+> **IMPORTANT:** 13. Ensure the Nginx_proxy Container is running. Check the Conjur Server at https://localhost:8443. (We suggest to click at Advanced button and select the `Proceed to localhost (unsafe)` mode)
 
-To log in, use:
+**Verification:** If all good, you can see the following text:
+
+```bash
+Your Conjur server is running!
+```
+
+If you getting error at Conjur server status verification, such as:
+
+```bash
+502 Bad Gateway
+```
+
+**Fix**: Stop the `conjur` containers and restart all of them.
+
+14. To log in, use:
 
 - **Account Name:** `default`
 - **Username:** `admin`
 - **Password:** `CONJUR_password1`
+
+If you getting error at login, such as:
+
+```bash
+ClientHttpError { status: 500, body: { message: 'Error: 500' } }
+```
+
+**Fix**: It means that `NODE_TLS_REJECT_UNAUTHORIZED=0` is not properly recognized. Check if `tasks.json` is set properly. then run the `pnpm` command as a vs code task. (Terminal -> Run Task... )
 
 For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommended VS Code Extensions](#enhance-your-development-experience-with-recommended-vs-code-extensions)
 
@@ -179,7 +205,6 @@ For Developers **IMPORTANT:** [Enhance Your Development Experience with Recommen
    # Login to GHCR
    docker login ghcr.io -u username -p accesstoken
    ```
-   
 2. Generate the `values.yaml` file:
    ```bash
    helm show values oci://ghcr.io/codefactoryhu/manifest-chart > values.yaml
@@ -237,3 +262,154 @@ When you open this project in Visual Studio Code, you may be prompted to install
 | conjurApiUrl        | string  | <https://conjur-oss>          | The Conjur API URL that's accessible within the namespace                    |
 | httpSecureCookie    | boolean | false                         | Wether or not the to use secure cookies on Manifest                          |
 | conjurTlsSecretName | string  | conjur-oss-conjur-ssl-ca-cert | The name of the TLS secret that contains the certificate the Conjur API uses |
+
+## How to set NODE_TLS_REJECT_UNAUTHORIZED to 0 ?
+
+In VS Code, you can set the NODE_TLS_REJECT_UNAUTHORIZED environment in this alternative way too:
+
+Create a task configuration:
+
+1.  Open VS Code.
+2.  In the Explorer sidebar, locate (or create) the .vscode folder in your workspace.
+3.  Inside `.vscode`, create a new file named `tasks.json`.
+4.  Copy and paste the following configuration into `tasks.json`:
+
+```json
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "run production",
+			"detail": "Run production build",
+			"command": "node build",
+			"options": {
+				"env": {
+					"NODE_TLS_REJECT_UNAUTHORIZED": "0",
+					"CONJUR_API_URL": "https://localhost:8443",
+					"COOKIE_HTTP_SECURE": "false",
+					"CSRF_VALUE": "false",
+					"HOST": "127.0.0.1",
+					"PORT": "8111"
+				}
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "docker-build",
+			"label": "docker-build",
+			"detail": "Build docker image",
+			"dockerBuild": {
+				"dockerfile": "${workspaceFolder}/Containerfile",
+				"context": "${workspaceFolder}",
+				"tag": "manifest-local:latest"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": false,
+				"clear": false
+			},
+			"dependsOn": { "npm: build": "succeeded" }
+		},
+		{
+			"type": "docker-run",
+			"label": "docker-run",
+			"detail": "Run docker container",
+			"dockerRun": {
+				"image": "manifest-local:latest",
+				"containerName": "manifest",
+				"network": "conjur",
+				"remove": true,
+				"ports": [{ "hostPort": 9000, "containerPort": 8080 }],
+				"env": {
+					"NODE_TLS_REJECT_UNAUTHORIZED": "0",
+					"CONJUR_API_URL": "https://proxy",
+					"COOKIE_HTTP_SECURE": "false",
+					"CSRF_VALUE": "false"
+				}
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": false,
+				"clear": false
+			},
+			"dependsOn": { "docker-build": "succeeded" }
+		},
+		{
+			"type": "docker-compose",
+			"label": "docker-compose-up",
+			"detail": "Docker Compose Up for Conjur",
+			"dockerCompose": {
+				"up": { "detached": true },
+				"files": ["${workspaceFolder}/conjur-tooling/docker-compose.yaml"]
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "dedicated",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"type": "npm",
+			"script": "dev",
+			"problemMatcher": [],
+			"label": "pnpm: dev",
+			"detail": "vite dev",
+			"options": {
+				"env": {
+					"NODE_TLS_REJECT_UNAUTHORIZED": "0"
+				}
+			}
+		},
+		{
+			"type": "npm",
+			"script": "preview",
+			"problemMatcher": [],
+			"label": "pnpm: preview",
+			"detail": "vite preview",
+			"options": {
+				"env": {
+					"NODE_TLS_REJECT_UNAUTHORIZED": "0"
+				}
+			}
+		},
+		{
+			"type": "npm",
+			"script": "build",
+			"problemMatcher": [],
+			"label": "pnpm: build",
+			"detail": "vite build"
+		},
+		{
+			"type": "npm",
+			"script": "check",
+			"problemMatcher": [],
+			"label": "pnpm: check",
+			"detail": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+		},
+		{
+			"type": "npm",
+			"script": "lint",
+			"problemMatcher": [],
+			"label": "pnpm: lint",
+			"detail": "prettier --plugin-search-dir . --check . && eslint ."
+		},
+		{
+			"type": "npm",
+			"script": "format",
+			"problemMatcher": [],
+			"label": "pnpm: format",
+			"detail": "prettier --plugin-search-dir . --write ."
+		}
+	]
+}
+```
