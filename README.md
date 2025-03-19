@@ -293,7 +293,7 @@ Create a task configuration:
 					"CONJUR_API_URL": "https://localhost:8443",
 					"COOKIE_HTTP_SECURE": "false",
 					"CSRF_VALUE": "false",
-					"CONJUR_AUTHN": "authn", // # or #conjurAuthn: "authn-ldap/my-ldap-server"
+					"CONJUR_AUTHN": "authn",
 					"HOST": "127.0.0.1",
 					"PORT": "8111"
 				}
