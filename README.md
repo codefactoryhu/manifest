@@ -6,14 +6,17 @@ Manifest is an open-source platform that provides an alternative user interface 
 
 ## Table of Contents
 
-1. [Introduction](#welcome-to-manifest)
-2. [Installing and Running Manifest](#installing-and-running-manifest)
-   - [Install Local Manifest with Docker](#1-install-local-manifest-with-docker)
-   - [Install Manifest on Kubernetes Cluster](#2-install-manifest-on-kubernetes-cluster)
-     - [Install Kubernetes (K8s)](#21-install-kubernetes-k8s)
-     - [K8s + Manifest + Conjur Open Source Environment](#22-k8s--manifest--conjur-open-source-environment)
-     - [K8s + Manifest + Config your Existing Conjur K8s Setup](#23-k8s--manifest--your-existing-conjur-kubernetes-setup)
-3. [Values.yaml documentation](#values-yaml-documentation)
+- [Welcome to Manifest](#welcome-to-manifest)
+  - [Table of Contents](#table-of-contents)
+  - [Installing and Running Manifest](#installing-and-running-manifest)
+  - [1. Install Local Manifest with Docker](#1-install-local-manifest-with-docker)
+  - [2. Install Manifest on Kubernetes Cluster](#2-install-manifest-on-kubernetes-cluster)
+    - [2.1. Install Kubernetes (K8s)](#21-install-kubernetes-k8s)
+    - [2.2. K8s + Manifest + Conjur Open Source Environment](#22-k8s--manifest--conjur-open-source-environment)
+    - [2.3. K8s + Manifest + Your Existing Conjur Kubernetes Setup](#23-k8s--manifest--your-existing-conjur-kubernetes-setup)
+  - [Enhance Your Development Experience with Recommended VS Code Extensions](#enhance-your-development-experience-with-recommended-vs-code-extensions)
+  - [Enjoy Your Secure and Easy-to-Use Conjur Interface with Manifest!](#enjoy-your-secure-and-easy-to-use-conjur-interface-with-manifest)
+  - [Values yaml Documentation](#values-yaml-documentation)
 
 ## Installing and Running Manifest
 
@@ -237,3 +240,4 @@ When you open this project in Visual Studio Code, you may be prompted to install
 | conjurApiUrl        | string  | <https://conjur-oss>          | The Conjur API URL that's accessible within the namespace                    |
 | httpSecureCookie    | boolean | false                         | Wether or not the to use secure cookies on Manifest                          |
 | conjurTlsSecretName | string  | conjur-oss-conjur-ssl-ca-cert | The name of the TLS secret that contains the certificate the Conjur API uses |
+| conjurAuthn         | string  | authn                         | Set which Conjur authenticator/\<service-id\> to use.                        |
